@@ -1,0 +1,195 @@
+<!-- Order Card Component - Include this in my_orders.html -->
+<div class="card border-0 shadow-sm order-card" data-order-id="{{ order.id }}">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <!-- Order Info -->
+            <div class="col-md-6">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="order-icon">
+                        <i class="fas fa-receipt fs-3 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="mb-1 fw-bold">{{ order.order_number }}</h5>
+                                <p class="text-muted mb-1 small">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ order.user_name }} ({{ order.user_email }})
+                                </p>
+                                <p class="text-muted mb-0 small">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ order.created_at }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Order Items Summary -->
+                        <div class="mt-2">
+                            <p class="mb-1 small text-muted">
+                                <strong>Items:</strong>
+                                {% for item in order['items'][:3] %}
+                                    {{ item.name }} (x{{ item.quantity }}){% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if order['items']|length > 3 %}
+                                    <span class="text-primary">+{{ order['items']|length - 3 }} more</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Status & Actions -->
+            <div class="col-md-3 text-center">
+                <div class="mb-2">
+                    {% if order.status == 'pending' %}
+                        <span class="badge bg-warning text-dark status-badge">
+                            <i class="fas fa-clock"></i> Pending
+                        </span>
+                    {% elif order.status == 'confirmed' %}
+                        <span class="badge bg-info status-badge">
+                            <i class="fas fa-check"></i> Confirmed
+                        </span>
+                    {% elif order.status == 'preparing' %}
+                        <span class="badge bg-primary status-badge">
+                            <i class="fas fa-utensils"></i> Preparing
+                        </span>
+                    {% elif order.status == 'ready' %}
+                        <span class="badge bg-success status-badge">
+                            <i class="fas fa-box"></i> Ready
+                        </span>
+                    {% elif order.status == 'delivered' %}
+                        <span class="badge bg-success status-badge">
+                            <i class="fas fa-check-circle"></i> Delivered
+                        </span>
+                    {% elif order.status == 'cancelled' %}
+                        <span class="badge bg-danger status-badge">
+                            <i class="fas fa-times-circle"></i> Cancelled
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="text-muted mb-1 small">Payment Status</p>
+                <span class="badge bg-success">
+                    <i class="fas fa-wallet"></i> {{ order.payment_status|title }}
+                </span>
+            </div>
+
+            <!-- Amount & View Button -->
+            <div class="col-md-3 text-end">
+                <div class="mb-3">
+                    <p class="text-muted mb-0 small">Total Amount</p>
+                    <h4 class="mb-0 fw-bold text-primary">PKR {{ "%.2f"|format(order.total_amount) }}</h4>
+                    <small class="text-muted">(Subtotal: PKR {{ "%.2f"|format(order.subtotal) }})</small>
+                </div>
+                <a href="{{ url_for('view_order_details', order_id=order.id) }}" 
+                   class="btn btn-primary btn-sm px-4">
+                    <i class="fas fa-eye me-1"></i> View Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Status Update Buttons (Only for active orders) -->
+        {% if order.status not in ['delivered', 'cancelled'] %}
+        <div class="border-top mt-3 pt-3">
+            <div class="d-flex gap-2 justify-content-end">
+                {% if order.status == 'pending' %}
+                <button class="btn btn-sm btn-success" onclick="updateOrderStatus('{{ order.id }}', 'confirmed')">
+                    <i class="fas fa-check"></i> Confirm Order
+                </button>
+                {% endif %}
+
+                {% if order.status == 'confirmed' %}
+                <button class="btn btn-sm btn-primary" onclick="updateOrderStatus('{{ order.id }}', 'preparing')">
+                    <i class="fas fa-utensils"></i> Start Preparing
+                </button>
+                {% endif %}
+
+                {% if order.status == 'preparing' %}
+                <button class="btn btn-sm btn-info" onclick="updateOrderStatus('{{ order.id }}', 'ready')">
+                    <i class="fas fa-box"></i> Mark as Ready
+                </button>
+                {% endif %}
+
+                {% if order.status == 'ready' %}
+                <button class="btn btn-sm btn-success" onclick="updateOrderStatus('{{ order.id }}', 'delivered')">
+                    <i class="fas fa-truck"></i> Mark as Delivered
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.order-card {
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.order-card:hover {
+    transform: translateX(5px);
+}
+
+.order-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+</style>
+
+<script>
+function updateOrderStatus(orderId, newStatus) {
+    if (!confirm(`Are you sure you want to update this order status to "${newStatus}"?`)) {
+        return;
+    }
+
+    fetch(`/restaurant/order/update_status/${orderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showToast('success', data.message);
+            // Reload page after 1 second
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('error', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', 'Failed to update order status');
+    });
+}
+
+function showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${message}
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>

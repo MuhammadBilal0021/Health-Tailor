@@ -1,0 +1,344 @@
+{% extends "restaurant_base.html" %}
+
+{% block title %}Order Details - {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{{ url_for('restaurant_orders') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Orders
+        </a>
+    </div>
+
+    <!-- Order Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="mb-2 fw-bold">Order #{{ order.order_number }}</h3>
+                    <div class="d-flex gap-4 text-muted">
+                        <span>
+                            <i class="fas fa-clock me-1"></i>
+                            {{ order.created_at }}
+                        </span>
+                        <span>
+                            <i class="fas fa-credit-card me-1"></i>
+                            {{ order.payment_method|title }}
+                        </span>
+                        <span>
+                            <i class="fas fa-check-circle me-1 text-success"></i>
+                            Payment {{ order.payment_status|title }}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    {% if order.status == 'pending' %}
+                        <span class="badge bg-warning text-dark status-badge-lg">
+                            <i class="fas fa-clock"></i> Pending
+                        </span>
+                    {% elif order.status == 'confirmed' %}
+                        <span class="badge bg-info status-badge-lg">
+                            <i class="fas fa-check"></i> Confirmed
+                        </span>
+                    {% elif order.status == 'preparing' %}
+                        <span class="badge bg-primary status-badge-lg">
+                            <i class="fas fa-utensils"></i> Preparing
+                        </span>
+                    {% elif order.status == 'ready' %}
+                        <span class="badge bg-success status-badge-lg">
+                            <i class="fas fa-box"></i> Ready
+                        </span>
+                    {% elif order.status == 'delivered' %}
+                        <span class="badge bg-success status-badge-lg">
+                            <i class="fas fa-check-circle"></i> Delivered
+                        </span>
+                    {% elif order.status == 'cancelled' %}
+                        <span class="badge bg-danger status-badge-lg">
+                            <i class="fas fa-times-circle"></i> Cancelled
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Order Items & Details -->
+        <div class="col-lg-8">
+            <!-- Order Items -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-shopping-bag text-primary me-2"></i>
+                        Order Items ({{ order['items']|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Spice Level</th>
+                                    <th>Prep Time</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order['items'] %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if item.image_url %}
+                                            <img src="{{ item.image_url }}" 
+                                                 alt="{{ item.name }}"
+                                                 class="rounded"
+                                                 style="width: 60px; height: 60px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fas fa-utensils text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ item.name }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">PKR {{ "%.2f"|format(item.price) }}</td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-primary">{{ item.quantity }}</span>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-warning text-dark">
+                                            {{ item.spice_level }}
+                                        </span>
+                                    </td>
+                                    <td class="align-middle">
+                                        <small class="text-muted">{{ item.preparation_time }}</small>
+                                    </td>
+                                    <td class="align-middle text-end fw-bold">
+                                        PKR {{ "%.2f"|format(item.price * item.quantity) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                        Delivery Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small mb-1">Delivery Address</label>
+                            <p class="mb-0 fw-semibold">
+                                <i class="fas fa-home me-2 text-primary"></i>
+                                {{ order.delivery_address }}
+                            </p>
+                        </div>
+                        {% if order.delivery_instructions %}
+                        <div class="col-md-12">
+                            <label class="text-muted small mb-1">Delivery Instructions</label>
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {{ order.delivery_instructions }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Customer Info & Order Summary -->
+        <div class="col-lg-4">
+            <!-- Customer Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-user text-success me-2"></i>
+                        Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small mb-1">Name</label>
+                        <p class="mb-0 fw-semibold">{{ order.user_name }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small mb-1">Email</label>
+                        <p class="mb-0">
+                            <a href="mailto:{{ order.user_email }}" class="text-decoration-none">
+                                {{ order.user_email }}
+                            </a>
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-muted small mb-1">User ID</label>
+                        <p class="mb-0 font-monospace small">{{ order.user_id }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-calculator text-info me-2"></i>
+                        Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <span class="fw-semibold">PKR {{ "%.2f"|format(order.subtotal) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Delivery Fee</span>
+                        <span class="fw-semibold">PKR {{ "%.2f"|format(order.delivery_fee) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Tax (5%)</span>
+                        <span class="fw-semibold">PKR {{ "%.2f"|format(order.tax) }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold fs-5">Total Amount</span>
+                        <span class="fw-bold fs-5 text-primary">PKR {{ "%.2f"|format(order.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Actions -->
+            {% if order.status not in ['delivered', 'cancelled'] %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-tasks text-warning me-2"></i>
+                        Update Order Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if order.status == 'pending' %}
+                        <button class="btn btn-success" onclick="updateStatus('confirmed')">
+                            <i class="fas fa-check me-2"></i> Confirm Order
+                        </button>
+                        {% endif %}
+
+                        {% if order.status == 'confirmed' %}
+                        <button class="btn btn-primary" onclick="updateStatus('preparing')">
+                            <i class="fas fa-utensils me-2"></i> Start Preparing
+                        </button>
+                        {% endif %}
+
+                        {% if order.status == 'preparing' %}
+                        <button class="btn btn-info" onclick="updateStatus('ready')">
+                            <i class="fas fa-box me-2"></i> Mark as Ready
+                        </button>
+                        {% endif %}
+
+                        {% if order.status == 'ready' %}
+                        <button class="btn btn-success" onclick="updateStatus('delivered')">
+                            <i class="fas fa-truck me-2"></i> Mark as Delivered
+                        </button>
+                        {% endif %}
+
+                        <button class="btn btn-outline-danger" onclick="updateStatus('cancelled')">
+                            <i class="fas fa-times-circle me-2"></i> Cancel Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.status-badge-lg {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 25px;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+function updateStatus(newStatus) {
+    const confirmMessages = {
+        'confirmed': 'confirm',
+        'preparing': 'start preparing',
+        'ready': 'mark as ready',
+        'delivered': 'mark as delivered',
+        'cancelled': 'cancel'
+    };
+
+    if (!confirm(`Are you sure you want to ${confirmMessages[newStatus]} this order?`)) {
+        return;
+    }
+
+    fetch(`/restaurant/order/update_status/{{ order.id }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', data.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('error', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', 'Failed to update order status');
+    });
+}
+
+function showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close ms-2" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

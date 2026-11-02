@@ -1,0 +1,223 @@
+{% extends 'user_base.html' %}
+
+{% block title %}Order #{{ order.order_number }} - Health Tailor{% endblock %}
+{% block page_title %}Order Details{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Order Header -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Order #{{ order.order_number }}</h2>
+                <p class="text-gray-600">{{ order.restaurant_name }}</p>
+                <p class="text-sm text-gray-500">{{ order.created_at }}</p>
+            </div>
+            <div class="mt-4 lg:mt-0 flex items-center space-x-4">
+                <!-- Status Badge -->
+                <span class="px-4 py-2 rounded-full text-sm font-medium 
+                            {% if order.status == 'delivered' %}bg-green-100 text-green-800
+                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                            {% elif order.status in ['preparing', 'ready'] %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ order.status|title }}
+                </span>
+                <span class="text-2xl font-bold text-gray-800">PKR {{ "%.2f"|format(order.total_amount) }}</span>
+            </div>
+        </div>
+
+        <!-- Order Progress -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                {% set statuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'] %}
+                {% for status in statuses %}
+                <div class="text-center flex-1">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2
+                                {% if statuses.index(status) <= statuses.index(order.status) %}
+                                {% if order.status == 'cancelled' %}bg-red-500
+                                {% else %}bg-green-500{% endif %}
+                                {% else %}bg-gray-300{% endif %}">
+                        <i class="fas 
+                            {% if status == 'pending' %}fa-clock
+                            {% elif status == 'confirmed' %}fa-check
+                            {% elif status == 'preparing' %}fa-utensils
+                            {% elif status == 'ready' %}fa-motorcycle
+                            {% elif status == 'delivered' %}fa-check-circle{% endif %}
+                            text-white text-sm"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 capitalize">{{ status }}</span>
+                </div>
+                {% if not loop.last %}
+                <div class="flex-1">
+                    <div class="h-1 bg-gray-200 rounded-full">
+                        <div class="h-1 bg-green-500 rounded-full 
+                                    {% if statuses.index(status) < statuses.index(order.status) %}w-full
+                                    {% elif statuses.index(status) == statuses.index(order.status) %}w-1/2
+                                    {% else %}w-0{% endif %}"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex space-x-3">
+            <a href="{{ url_for('user_orders') }}" 
+               class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Orders
+            </a>
+            {% if order.status in ['pending', 'confirmed'] %}
+            <button onclick="cancelOrder('{{ order.id }}')" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center">
+                <i class="fas fa-times mr-2"></i>Cancel Order
+            </button>
+            {% endif %}
+            <a href="{{ url_for('user_view_restaurant', restaurant_id=order.restaurant_id) }}" 
+               class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center">
+                <i class="fas fa-utensils mr-2"></i>Order Again
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Order Items -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Order Items Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Order Items</h3>
+                <div class="space-y-4">
+                    {% for item in order['items'] %}
+                    <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                        <div class="flex-shrink-0">
+                            {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="{{ item.name }}" 
+                                     class="w-16 h-16 rounded-lg object-cover">
+                            {% else %}
+                                <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                                    <i class="fas fa-utensils text-gray-400"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-gray-800">{{ item.name }}</h4>
+                            <div class="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                                <span>Quantity: {{ item.quantity }}</span>
+                                <span>•</span>
+                                <span class="flex items-center">
+                                    <i class="fas fa-pepper-hot mr-1 
+                                        {% if item.spice_level == 'Mild' %}text-green-500
+                                        {% elif item.spice_level == 'Medium' %}text-yellow-500
+                                        {% elif item.spice_level == 'Spicy' %}text-orange-500
+                                        {% elif item.spice_level == 'Very Spicy' %}text-red-500
+                                        {% else %}text-gray-400{% endif %}"></i>
+                                    {{ item.spice_level }}
+                                </span>
+                            </div>
+                        </div>
+                        <span class="font-bold text-gray-800">PKR {{ "%.2f"|format(item.price * item.quantity) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Delivery Instructions -->
+            {% if order.delivery_instructions %}
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Delivery Instructions</h3>
+                <p class="text-gray-700">{{ order.delivery_instructions }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Order Summary -->
+        <div class="space-y-6">
+            <!-- Summary Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Order Summary</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Subtotal ({{ order['items']|length }} items)</span>
+                        <span class="text-gray-800">PKR {{ "%.2f"|format(order.subtotal) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Delivery Fee</span>
+                        <span class="text-gray-800">PKR {{ "%.2f"|format(order.delivery_fee) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Tax</span>
+                        <span class="text-gray-800">PKR {{ "%.2f"|format(order.tax) }}</span>
+                    </div>
+                    <div class="border-t border-gray-200 pt-3">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span class="text-gray-800">Total</span>
+                            <span class="text-green-600">PKR {{ "%.2f"|format(order.total_amount) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Information</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Payment Method</span>
+                        <span class="font-medium text-gray-800">{{ order.payment_method|title }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Payment Status</span>
+                        <span class="font-medium 
+                                    {% if order.payment_status == 'paid' %}text-green-600
+                                    {% else %}text-yellow-600{% endif %}">
+                            {{ order.payment_status|title }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Information -->
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Delivery Information</h3>
+                <div class="space-y-3">
+                    <div class="flex items-start">
+                        <i class="fas fa-map-marker-alt text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium text-gray-800">Delivery Address</span>
+                            <p class="text-gray-600 text-sm">{{ order.delivery_address }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function cancelOrder(orderId) {
+    if (!confirm('Are you sure you want to cancel this order? The amount will be refunded to your wallet.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/user/order/cancel/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

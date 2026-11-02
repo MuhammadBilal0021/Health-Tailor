@@ -1,0 +1,203 @@
+{% extends "restaurant_base.html" %}
+
+{% block title %}Gallery{% endblock %}
+{% block page_title %}Restaurant Gallery{% endblock %}
+{% block page_subtitle %}Manage your restaurant images{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Upload Section -->
+    <div class="bg-white rounded-2xl shadow-lg border-2 p-6 md:p-8 mb-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <i class="fas fa-upload text-2xl text-emerald-600"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-gray-900">Upload Images</h2>
+                <p class="text-sm text-gray-600">Add photos of your restaurant and dishes</p>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-emerald-500 transition-all">
+                <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                <input type="file" name="gallery_images" id="galleryImages" accept="image/*" multiple required
+                       class="hidden" onchange="previewImages(this)">
+                <label for="galleryImages" class="cursor-pointer">
+                    <div class="text-lg font-bold text-gray-900 mb-2">Click to select images</div>
+                    <div class="text-sm text-gray-600">or drag and drop</div>
+                    <div class="text-xs text-gray-500 mt-2">PNG, JPG, JPEG (Max 5MB each)</div>
+                </label>
+            </div>
+
+            <div id="imagePreview" class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
+                <!-- Preview images will appear here -->
+            </div>
+
+            <button type="submit"
+                    class="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-black shadow-lg hover:shadow-xl transition-all">
+                <i class="fas fa-upload mr-2"></i>Upload Images
+            </button>
+        </form>
+    </div>
+
+    <!-- Current Images -->
+    <div class="bg-white rounded-2xl shadow-lg border-2 p-6 md:p-8">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-images text-2xl text-blue-600"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-gray-900">Your Images</h2>
+                    <p class="text-sm text-gray-600">{{ images|length }} image(s) uploaded</p>
+                </div>
+            </div>
+        </div>
+
+        {% if images and images|length > 0 %}
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {% for image in images %}
+                    <div class="relative group aspect-square">
+                        <img src="{{ image }}" alt="Restaurant image" 
+                             class="w-full h-full object-cover rounded-xl border-2 border-gray-200 hover:border-emerald-500 transition-all">
+                        
+                        <!-- Overlay on hover -->
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all rounded-xl flex items-center justify-center gap-2">
+                            <button onclick="viewImage('{{ image }}')"
+                                    class="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="deleteImage({{ loop.index0 }})"
+                                    class="p-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-image text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-600 font-semibold">No images uploaded yet</p>
+                <p class="text-sm text-gray-500 mt-2">Upload some photos to showcase your restaurant</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Image View Modal -->
+<div id="imageViewModal" class="modal hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative max-w-4xl w-full">
+        <button onclick="closeImageView()" class="absolute top-4 right-4 text-white hover:text-gray-300 text-3xl z-10">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="viewImage" src="" alt="Restaurant image" class="w-full h-auto rounded-2xl shadow-2xl">
+    </div>
+</div>
+
+<script>
+// Preview selected images before upload
+function previewImages(input) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    preview.classList.remove('hidden');
+
+    if (input.files) {
+        Array.from(input.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative aspect-square';
+                div.innerHTML = `
+                    <img src="${e.target.result}" 
+                         class="w-full h-full object-cover rounded-xl border-2 border-emerald-500">
+                    <div class="absolute top-2 right-2 bg-emerald-600 text-white rounded-lg px-2 py-1 text-xs font-bold">
+                        New
+                    </div>
+                `;
+                preview.appendChild(div);
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+}
+
+// View image in modal
+function viewImage(imageUrl) {
+    document.getElementById('viewImage').src = imageUrl;
+    document.getElementById('imageViewModal').classList.remove('hidden');
+}
+
+function closeImageView() {
+    document.getElementById('imageViewModal').classList.add('hidden');
+}
+
+// Delete image
+async function deleteImage(index) {
+    if (!confirm('Are you sure you want to delete this image?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/restaurant/gallery/delete/${index}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        alert('Error deleting image: ' + error.message);
+    }
+}
+
+// Close modal on ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageView();
+    }
+});
+
+// Drag and drop functionality
+const dropZone = document.querySelector('.border-dashed');
+const fileInput = document.getElementById('galleryImages');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('border-emerald-500', 'bg-emerald-50');
+    });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('border-emerald-500', 'bg-emerald-50');
+    });
+});
+
+dropZone.addEventListener('drop', function(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    fileInput.files = files;
+    previewImages(fileInput);
+});
+</script>
+
+{% endblock %}

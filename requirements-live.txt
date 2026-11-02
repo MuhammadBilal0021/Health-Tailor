@@ -1,0 +1,5 @@
+-r requirements.txt
+firebase-admin>=7.1.0,<8
+google-genai>=1,<2
+yagmail>=0.15.293,<1
+waitress>=3,<4

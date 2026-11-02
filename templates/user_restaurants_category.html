@@ -1,0 +1,229 @@
+{% extends 'user_base.html' %}
+
+{% block title %}{{ category_name }} Restaurants - Health Tailor{% endblock %}
+{% block page_title %}{{ category_name }} Restaurants{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-green-600 to-blue-700 rounded-2xl shadow-lg p-6 text-white">
+        <div class="flex flex-col md:flex-row md:items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">🍴 {{ category_name }} Restaurants</h2>
+                <p class="text-green-100">Discover the best {{ category_name }} food in town</p>
+                
+                <!-- Stats -->
+                <div class="flex flex-wrap gap-4 mt-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-2">
+                            <i class="fas fa-utensils text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-90">{{ total_restaurants }} restaurants</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-2">
+                            <i class="fas fa-tag text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-90">{{ category_name }} cuisine</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{{ url_for('user_restaurants') }}" 
+                   class="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to All Restaurants
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restaurants Grid -->
+    {% if restaurants %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for restaurant in restaurants %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <!-- Restaurant Image -->
+            <div class="relative">
+                {% if restaurant.images and restaurant.images[0] %}
+                    <img src="{{ restaurant.images[0] }}" alt="{{ restaurant.restaurant_name }}" 
+                         class="w-full h-48 object-cover">
+                {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-green-200 to-blue-300 flex items-center justify-center">
+                        <i class="fas fa-utensils text-white text-4xl"></i>
+                    </div>
+                {% endif %}
+                
+                <!-- Category Badge -->
+                <div class="absolute top-3 left-3">
+                    <span class="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-full flex items-center">
+                        <i class="fas fa-tag mr-1"></i>
+                        {{ category_name }}
+                    </span>
+                </div>
+                
+                <!-- Rating Badge -->
+                <div class="absolute top-3 right-3">
+                    <span class="px-2 py-1 bg-black bg-opacity-70 text-white text-xs font-medium rounded-full">
+                        <i class="fas fa-star text-yellow-400 mr-1"></i>
+                        {{ "%.1f"|format(restaurant.rating) if restaurant.rating else "New" }}
+                    </span>
+                </div>
+
+                <!-- City Badge -->
+                <div class="absolute bottom-3 left-3">
+                    <span class="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded-full flex items-center">
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        {{ restaurant.city }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Restaurant Info -->
+            <div class="p-4">
+                <h4 class="font-bold text-lg text-gray-800 mb-1">{{ restaurant.restaurant_name }}</h4>
+                <p class="text-gray-600 text-sm mb-2 flex items-center">
+                    <i class="fas fa-user-tie text-green-500 mr-1"></i>
+                    {{ restaurant.owner_name }}
+                </p>
+                
+                <!-- Specialties -->
+                <div class="mb-3">
+                    <div class="flex flex-wrap gap-1">
+                        {% for specialty in restaurant.specialty %}
+                            {% if specialty == category_name %}
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">{{ specialty }}</span>
+                            {% else %}
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{{ specialty }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Contact & Timing -->
+                <div class="space-y-2 text-sm text-gray-500 mb-3">
+                    <div class="flex items-center justify-between">
+                        <span class="flex items-center">
+                            <i class="fas fa-phone mr-1"></i>
+                            {{ restaurant.phone }}
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-utensils mr-1"></i>
+                            {{ restaurant.menu_items_count }} items
+                        </span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        {{ restaurant.opening_time or 'N/A' }} - {{ restaurant.closing_time or 'N/A' }}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('user_view_restaurant', restaurant_id=restaurant.id) }}" 
+                       class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium flex items-center justify-center">
+                        <i class="fas fa-eye mr-2"></i>View Menu
+                    </a>
+                    <button class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- No Restaurants Found -->
+    <div class="bg-white rounded-2xl shadow-sm p-8 text-center">
+        <div class="max-w-md mx-auto">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-tag text-green-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">No {{ category_name }} restaurants found</h3>
+            <p class="text-gray-600 mb-6">
+                We couldn't find any restaurants specializing in {{ category_name }} cuisine. Try exploring other categories or check back later.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="{{ url_for('user_restaurants') }}" 
+                   class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium">
+                    Browse All Restaurants
+                </a>
+                <button onclick="history.back()" 
+                        class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium">
+                    Go Back
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Related Categories -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Explore Related Categories</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {% set related_categories = {
+                'Biryani': ['BBQ', 'Pakistani', 'Traditional'],
+                'Chinese': ['Thai', 'Asian', 'Fast Food'],
+                'BBQ': ['Biryani', 'Pakistani', 'Meat'],
+                'Fast Food': ['Burgers', 'Pizza', 'Snacks'],
+                'Vegetarian': ['Healthy', 'Salads', 'Vegan'],
+                'Seafood': ['Fish', 'Coastal', 'Grilled'],
+                'Desserts': ['Bakery', 'Sweets', 'Ice Cream'],
+                'Italian': ['Pizza', 'Pasta', 'European'],
+                'Thai': ['Asian', 'Spicy', 'Noodles'],
+                'Mexican': ['Tex-Mex', 'Spicy', 'Fast Food'],
+                'Healthy': ['Vegetarian', 'Salads', 'Organic'],
+                'Arabic': ['Middle Eastern', 'Grilled', 'Traditional']
+            } %}
+            
+            {% set related = related_categories.get(category_name, ['Biryani', 'Chinese', 'BBQ', 'Fast Food', 'Vegetarian', 'Seafood']) %}
+            
+            {% for category in related %}
+            <a href="{{ url_for('user_restaurants_by_category', category_name=category) }}" 
+               class="p-3 bg-gray-50 hover:bg-green-50 border border-gray-200 rounded-lg text-center transition-colors group">
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-green-200">
+                    <i class="fas fa-utensils text-green-600 text-sm"></i>
+                </div>
+                <span class="text-sm font-medium text-gray-700 group-hover:text-green-700">{{ category }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    {% if restaurants %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-green-50 rounded-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-utensils text-green-600"></i>
+            </div>
+            <h4 class="font-bold text-gray-800 text-lg">{{ total_restaurants }}</h4>
+            <p class="text-gray-600 text-sm">{{ category_name }} Restaurants</p>
+        </div>
+
+        <div class="bg-blue-50 rounded-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-star text-blue-600"></i>
+            </div>
+            <h4 class="font-bold text-gray-800 text-lg">
+                {{ restaurants|selectattr('rating', '>=', 4.0)|list|length }}
+            </h4>
+            <p class="text-gray-600 text-sm">Highly Rated (4.0+)</p>
+        </div>
+
+        <div class="bg-purple-50 rounded-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-map-marker-alt text-purple-600"></i>
+            </div>
+            <h4 class="font-bold text-gray-800 text-lg">
+                {{ restaurants|map(attribute='city')|unique|list|length }}
+            </h4>
+            <p class="text-gray-600 text-sm">Cities Available</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Restaurant Dashboard{% endblock %} - Health Tailor</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --primary-color: #10b981;
+            --secondary-color: #059669;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #059669;
+        }
+
+        /* Sidebar Animation */
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        /* Flash Message Animation */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .flash-message {
+            animation: slideInRight 0.4s ease;
+        }
+
+        /* Active Menu Item */
+        .menu-item-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Mobile Menu Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 40;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-overlay.show {
+            display: block;
+        }
+
+        /* Notification Badge Pulse */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .notification-badge {
+            animation: pulse 2s infinite;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1.5rem;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Dropdown Styles */
+        .dropdown-menu {
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+        }
+
+        .dropdown:hover .dropdown-menu {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='polish.css') }}">
+<script defer src="{{ url_for('static', filename='forms.js') }}"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-emerald-50/10 to-gray-50">{% if demo_mode %}<div role="status" style="position:relative;z-index:60;background:#233e34;color:#fff;text-align:center;padding:8px;font:12px sans-serif">Portfolio demo · Fictional data and test credit · No real payments</div>{% endif %}
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-emerald-600 via-emerald-500 to-teal-600 shadow-2xl z-50 overflow-y-auto" id="sidebar">
+        <!-- Logo Section -->
+        <div class="p-6 border-b border-white/20">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <i class="fas fa-utensils text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-black text-white">Health-Pro</h3>
+                    <p class="text-xs text-white/80 font-semibold">Restaurant Management</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restaurant Info Card -->
+        <div class="mx-4 mt-4 mb-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <span class="text-xl font-black text-white">
+                        {{ session.get('restaurant_name', 'R')[0]|upper }}
+                    </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ session.get('restaurant_name', 'Restaurant') }}</p>
+                    <p class="text-xs text-white/70 font-medium">Restaurant Owner</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items -->
+        <nav class="px-4 pb-6">
+            <ul class="space-y-2">
+                <li>
+                    <a href="{{ url_for('restaurant_dashboard') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-chart-line w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_menu') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-utensils w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Menu Management</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_orders_feed') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-shopping-bag w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Orders</span>
+                        <span class="ml-auto bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-bold" id="ordersBadge"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_wallet') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-wallet w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Wallet & Earnings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_reviews') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-star w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Reviews</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_gallery') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-image w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Gallery</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('restaurant_settings') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/90 hover:bg-white/20 transition-all font-semibold group">
+                        <i class="fas fa-cog w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Logout Button -->
+            <div class="mt-6 pt-6 border-t border-white/20">
+                <a href="{{ url_for('restaurant_logout') }}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/20 hover:bg-red-500 text-white transition-all font-semibold group">
+                    <i class="fas fa-sign-out-alt w-5 text-lg group-hover:scale-110 transition-transform"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-72 min-h-screen">
+        <!-- Top Navigation Bar -->
+        <nav class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+            <div class="px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <!-- Left Side -->
+                    <div class="flex items-center gap-4">
+                        <!-- Mobile Menu Toggle -->
+                        <button onclick="toggleSidebar()"
+                                class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-bars text-xl text-gray-700"></i>
+                        </button>
+
+                        <!-- Page Title -->
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-black text-gray-900">
+                                {% block page_title %}Dashboard{% endblock %}
+                            </h1>
+                            <p class="text-xs text-gray-500 font-medium mt-0.5">
+                                {% block page_subtitle %}Welcome back!{% endblock %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Right Side -->
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <!-- Search Button -->
+                        <button onclick="openSearchModal()"
+                                class="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-search text-gray-600"></i>
+                            <span class="text-sm font-medium text-gray-700">Search</span>
+                        </button>
+
+                        <!-- Mobile Search -->
+                        <button onclick="openSearchModal()"
+                                class="md:hidden p-2.5 rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-search text-lg text-gray-700"></i>
+                        </button>
+
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button onclick="loadNotifications()"
+                                    class="relative p-2 md:p-2.5 rounded-lg hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-bell text-lg md:text-xl text-gray-700"></i>
+                                <span class="notification-badge absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
+                                      id="notificationBadge" style="display: none;">
+                                    0
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- User Profile Dropdown -->
+                        <div class="relative dropdown">
+                            <button class="flex items-center gap-2 md:gap-3 p-2 md:px-3 md:py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
+                                    <span class="text-sm md:text-base font-black text-white">
+                                        {{ session.get('restaurant_name', 'R')[0]|upper }}
+                                    </span>
+                                </div>
+                                <div class="hidden md:block text-left">
+                                    <p class="text-sm font-bold text-gray-900">{{ session.get('restaurant_name', 'Restaurant') }}</p>
+                                    <p class="text-xs text-gray-500 font-medium">Restaurant</p>
+                                </div>
+                                <i class="fas fa-chevron-down text-xs text-gray-500 hidden md:block"></i>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div class="dropdown-menu absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border-2 border-gray-100 z-50">
+                                <div class="p-4 border-b border-gray-100">
+                                    <p class="text-sm font-bold text-gray-900">{{ session.get('restaurant_name', 'Restaurant') }}</p>
+                                    <p class="text-xs text-gray-500 font-medium mt-1">Restaurant Owner</p>
+                                </div>
+                                <div class="p-2">
+                                    <a href="{{ url_for('restaurant_profile') }}"
+                                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-emerald-50 text-gray-700 hover:text-emerald-600 transition-all font-medium">
+                                        <i class="fas fa-user w-4"></i>
+                                        <span>Profile</span>
+                                    </a>
+                                    <a href="{{ url_for('restaurant_settings') }}"
+                                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-emerald-50 text-gray-700 hover:text-emerald-600 transition-all font-medium">
+                                        <i class="fas fa-cog w-4"></i>
+                                        <span>Settings</span>
+                                    </a>
+                                    <a href="{{ url_for('restaurant_help') }}"
+                                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-emerald-50 text-gray-700 hover:text-emerald-600 transition-all font-medium">
+                                        <i class="fas fa-question-circle w-4"></i>
+                                        <span>Help Center</span>
+                                    </a>
+                                </div>
+                                <div class="p-2 border-t border-gray-100">
+                                    <a href="{{ url_for('restaurant_logout') }}"
+                                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-red-50 text-red-600 transition-all font-bold">
+                                        <i class="fas fa-sign-out-alt w-4"></i>
+                                        <span>Logout</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        <div class="fixed top-20 right-4 z-50 space-y-3 max-w-md">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flex items-start gap-3 px-5 py-4 rounded-xl shadow-2xl border-2
+                            {% if category == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-900
+                            {% elif category == 'error' or category == 'danger' %}bg-red-50 border-red-200 text-red-900
+                            {% elif category == 'warning' %}bg-yellow-50 border-yellow-200 text-yellow-900
+                            {% else %}bg-blue-50 border-blue-200 text-blue-900{% endif %}">
+
+                            <div class="flex-shrink-0">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle text-2xl text-emerald-600"></i>
+                                {% elif category == 'error' or category == 'danger' %}
+                                    <i class="fas fa-exclamation-circle text-2xl text-red-600"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle text-2xl text-yellow-600"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle text-2xl text-blue-600"></i>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex-1">
+                                <p class="font-bold text-sm">{{ message }}</p>
+                            </div>
+
+                            <button onclick="this.parentElement.remove()"
+                                    class="flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Page Content -->
+        <div class="content-wrapper">
+            {% block content %}
+            <!-- Page content goes here -->
+            {% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 mt-12">
+            <div class="px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-center md:text-left">
+                        <p class="text-sm font-semibold text-gray-900">
+                            Health Tailor Restaurant Management System
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            © 2024 All rights reserved.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a href="{{ url_for('restaurant_help') }}"
+                           class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
+                            Help Center
+                        </a>
+                        <span class="text-gray-300">•</span>
+                        <a href="#" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
+                            Terms
+                        </a>
+                        <span class="text-gray-300">•</span>
+                        <a href="#" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
+                            Privacy
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content w-full max-w-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-2xl font-black text-gray-900">🔍 Search</h3>
+                <button onclick="closeSearchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <input type="text" id="searchInput"
+                   placeholder="Search orders, menu items..."
+                   class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 transition-all font-medium"
+                   onkeyup="performSearch()">
+
+            <div id="searchResults" class="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-gray-500 text-center py-4">Start typing to search...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content w-full max-w-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-2xl font-black text-gray-900">🔔 Notifications</h3>
+                <button onclick="closeNotificationsModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div id="notificationsList" class="space-y-3">
+                <div class="text-center py-8">
+                    <div class="spinner mx-auto"></div>
+                    <p class="text-gray-500 mt-4">Loading notifications...</p>
+                </div>
+            </div>
+
+            <button onclick="markAllAsRead()"
+                    class="w-full mt-4 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all">
+                Mark All as Read
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Toggle Sidebar on Mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        // Search Modal Functions
+        function openSearchModal() {
+            document.getElementById('searchModal').classList.add('show');
+            document.getElementById('searchInput').focus();
+        }
+
+        function closeSearchModal() {
+            document.getElementById('searchModal').classList.remove('show');
+        }
+
+        // Search Function
+        let searchTimeout;
+        function performSearch() {
+            clearTimeout(searchTimeout);
+            const query = document.getElementById('searchInput').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+
+            if (query.length === 0) {
+                resultsDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Start typing to search...</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="text-center py-4"><div class="spinner mx-auto"></div></div>';
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/restaurant/search?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+
+                    if (data.success && data.results.length > 0) {
+                        resultsDiv.innerHTML = data.results.map(result => `
+                            <a href="${result.url}" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-${result.icon} text-emerald-600"></i>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-sm text-gray-900">${result.title}</p>
+                                        <p class="text-xs text-gray-600">${result.subtitle}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('');
+                    } else {
+                        resultsDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No results found</p>';
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML = '<p class="text-red-500 text-center py-4">Error loading results</p>';
+                }
+            }, 500);
+        }
+
+        // Notifications Functions
+        async function loadNotifications() {
+            document.getElementById('notificationsModal').classList.add('show');
+
+            try {
+                const response = await fetch('/restaurant/notifications');
+                const data = await response.json();
+
+                const listDiv = document.getElementById('notificationsList');
+
+                if (data.success && data.notifications.length > 0) {
+                    listDiv.innerHTML = data.notifications.map(notif => `
+                        <div class="p-4 bg-${getNotifColor(notif.type)}-50 border-2 border-${getNotifColor(notif.type)}-200 rounded-xl ${notif.read ? 'opacity-60' : ''}">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-${getNotifIcon(notif.type)} text-${getNotifColor(notif.type)}-600 text-xl"></i>
+                                <div class="flex-1">
+                                    <p class="font-bold text-gray-900 text-sm">${notif.title}</p>
+                                    <p class="text-xs text-gray-600 mt-1">${notif.message}</p>
+                                    <p class="text-xs text-gray-500 mt-2">${notif.created_at}</p>
+                                </div>
+                                ${!notif.read ? `
+                                    <button onclick="markAsRead('${notif.id}')" class="text-emerald-600 hover:text-emerald-700">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    updateNotificationBadge(data.unread_count);
+                } else {
+                    listDiv.innerHTML = '<p class="text-gray-500 text-center py-8">No notifications</p>';
+                    updateNotificationBadge(0);
+                }
+            } catch (error) {
+                document.getElementById('notificationsList').innerHTML =
+                    '<p class="text-red-500 text-center py-4">Error loading notifications</p>';
+            }
+        }
+
+        function closeNotificationsModal() {
+            document.getElementById('notificationsModal').classList.remove('show');
+        }
+
+        async function markAsRead(notificationId) {
+            try {
+                const response = await fetch(`/restaurant/notifications/mark_read/${notificationId}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    loadNotifications();
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const response = await fetch('/restaurant/notifications/mark_all_read', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    loadNotifications();
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notificationBadge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function getNotifColor(type) {
+            const colors = {
+                'info': 'blue',
+                'success': 'green',
+                'warning': 'yellow',
+                'error': 'red'
+            };
+            return colors[type] || 'gray';
+        }
+
+        function getNotifIcon(type) {
+            const icons = {
+                'info': 'info-circle',
+                'success': 'check-circle',
+                'warning': 'exclamation-triangle',
+                'error': 'exclamation-circle'
+            };
+            return icons[type] || 'bell';
+        }
+
+        // Load notification count on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/restaurant/notifications');
+                const data = await response.json();
+                if (data.success) {
+                    updateNotificationBadge(data.unread_count);
+                }
+            } catch (error) {
+                console.error('Error loading notification count:', error);
+            }
+        });
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSearchModal();
+                closeNotificationsModal();
+            }
+        });
+
+        // Auto-hide flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message');
+                flashMessages.forEach(function(message) {
+                    message.style.animation = 'slideInRight 0.4s ease reverse';
+                    setTimeout(() => message.remove(), 400);
+                });
+            }, 5000);
+        });
+
+        // Highlight active menu item based on current URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const menuLinks = document.querySelectorAll('.sidebar nav a');
+
+            menuLinks.forEach(function(link) {
+                const href = link.getAttribute('href');
+                if (href && (currentPath === href || currentPath.startsWith(href + '/'))) {
+                    link.classList.add('menu-item-active');
+                    link.classList.remove('text-white/90', 'hover:bg-white/20');
+                }
+            });
+        });
+
+        // Close sidebar when clicking on a menu item (mobile only)
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuLinks = document.querySelectorAll('.sidebar nav a');
+            menuLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 1024) {
+                        closeSidebar();
+                    }
+                });
+            });
+        });
+
+        // Prevent body scroll when sidebar is open on mobile
+        const sidebar = document.getElementById('sidebar');
+        const observer = new MutationObserver(function(mutations) {
+            if (window.innerWidth < 1024) {
+                if (sidebar.classList.contains('show')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+
+        // Add smooth scroll behavior
+        document.documentElement.style.scrollBehavior = 'smooth';
+
+        // Refresh notifications every 30 seconds
+        setInterval(async function() {
+            try {
+                const response = await fetch('/restaurant/notifications');
+                const data = await response.json();
+                if (data.success) {
+                    updateNotificationBadge(data.unread_count);
+                }
+            } catch (error) {
+                console.error('Error refreshing notifications:', error);
+            }
+        }, 30000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

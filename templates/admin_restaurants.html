@@ -1,0 +1,326 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Restaurant Management - Health Tailor{% endblock %}
+{% block page_title %}Restaurant Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Restaurants</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-utensils text-blue-500 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Pending Approval</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ stats.pending }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-500 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Approved</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ stats.approved }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check text-green-500 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Restaurants Section -->
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 px-6 py-4">
+            <h2 class="text-xl font-bold text-white">Pending Approval ({{ pending_restaurants|length }})</h2>
+            <p class="text-yellow-100">Restaurants waiting for review and approval</p>
+        </div>
+
+        {% if pending_restaurants %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restaurant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for restaurant in pending_restaurants %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    {% if restaurant.images and restaurant.images[0] %}
+                                        <img class="h-10 w-10 rounded-lg object-cover" src="{{ restaurant.images[0] }}" alt="{{ restaurant.restaurant_name }}">
+                                    {% else %}
+                                        <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                                            <i class="fas fa-utensils text-gray-400"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ restaurant.restaurant_name }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if restaurant.specialty %}
+                                            {{ restaurant.specialty|join(', ') }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ restaurant.owner_name }}</div>
+                            <div class="text-sm text-gray-500">{{ restaurant.email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ restaurant.phone }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ restaurant.city }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ restaurant.created_at[:10] if restaurant.created_at else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('view_restaurant', restaurant_id=restaurant.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900 transition-colors"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button onclick="approveRestaurant('{{ restaurant.id }}', '{{ restaurant.restaurant_name }}')" 
+                                        class="text-green-600 hover:text-green-900 transition-colors"
+                                        title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="rejectRestaurant('{{ restaurant.id }}', '{{ restaurant.restaurant_name }}')" 
+                                        class="text-red-600 hover:text-red-900 transition-colors"
+                                        title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-check-circle text-4xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No pending restaurants</h3>
+            <p class="text-gray-500">All restaurant applications have been processed.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Approved Restaurants Section -->
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+            <h2 class="text-xl font-bold text-white">Approved Restaurants ({{ approved_restaurants|length }})</h2>
+            <p class="text-green-100">Active restaurants on the platform</p>
+        </div>
+
+        {% if approved_restaurants %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Restaurant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approved On</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for restaurant in approved_restaurants %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    {% if restaurant.images and restaurant.images[0] %}
+                                        <img class="h-10 w-10 rounded-lg object-cover" src="{{ restaurant.images[0] }}" alt="{{ restaurant.restaurant_name }}">
+                                    {% else %}
+                                        <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                                            <i class="fas fa-utensils text-gray-400"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ restaurant.restaurant_name }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if restaurant.specialty %}
+                                            {{ restaurant.specialty|join(', ') }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ restaurant.owner_name }}</div>
+                            <div class="text-sm text-gray-500">{{ restaurant.email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ restaurant.phone }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ restaurant.approved_at[:10] if restaurant.approved_at else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check mr-1"></i>Active
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('view_restaurant', restaurant_id=restaurant.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900 transition-colors"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-utensils text-4xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No approved restaurants</h3>
+            <p class="text-gray-500">No restaurants have been approved yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">Reject Restaurant</h3>
+        </div>
+        
+        <div class="p-6">
+            <p class="text-gray-600 mb-4" id="rejectMessage">Are you sure you want to reject this restaurant?</p>
+            
+            <div class="mb-4">
+                <label for="rejectReason" class="block text-sm font-medium text-gray-700 mb-2">Reason for rejection (optional):</label>
+                <textarea id="rejectReason" rows="3" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                          placeholder="Provide reason for rejection..."></textarea>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            <button type="button" onclick="closeRejectModal()" 
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors font-medium">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmReject()" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium">
+                Reject Restaurant
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRestaurantId = null;
+let currentRestaurantName = null;
+
+// Approve restaurant
+async function approveRestaurant(restaurantId, restaurantName) {
+    if (!confirm(`Are you sure you want to approve "${restaurantName}"? This will send an approval email to the restaurant.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/restaurant/approve/${restaurantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+// Reject restaurant modal
+function rejectRestaurant(restaurantId, restaurantName) {
+    currentRestaurantId = restaurantId;
+    currentRestaurantName = restaurantName;
+    
+    document.getElementById('rejectMessage').textContent = `Are you sure you want to reject "${restaurantName}"? This action cannot be undone and will send a rejection email.`;
+    document.getElementById('rejectReason').value = '';
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+    currentRestaurantId = null;
+    currentRestaurantName = null;
+}
+
+// Confirm rejection
+async function confirmReject() {
+    const reason = document.getElementById('rejectReason').value;
+    
+    try {
+        const response = await fetch(`/admin/restaurant/reject/${currentRestaurantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reason: reason || 'Does not meet our requirements'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

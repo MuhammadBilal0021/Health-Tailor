@@ -1,0 +1,560 @@
+{% extends "restaurant_base.html" %}
+
+{% block title %}Menu Management - {{ restaurant.restaurant_name }}{% endblock %}
+{% block page_title %}Menu Management{% endblock %}
+{% block page_subtitle %}Add, edit, and organize your restaurant menu items{% endblock %}
+
+{% block extra_css %}
+<style>
+    @keyframes modalEnter {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .modal-animation {
+        animation: modalEnter 0.2s ease-out;
+    }
+
+    .menu-item-card {
+        transition: all 0.3s ease;
+    }
+
+    .menu-item-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Header Section -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 md:mb-8">
+        <div class="mb-4 lg:mb-0">
+            <h2 class="text-2xl md:text-3xl font-black text-gray-900 mb-2">Manage Your Menu</h2>
+            <p class="text-gray-600 font-medium">Add, edit, and organize your restaurant menu items</p>
+        </div>
+        <button onclick="openAddModal()"
+                class="w-full lg:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl font-black shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+            <i class="fas fa-plus text-lg"></i>
+            <span>Add New Item</span>
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <!-- Total Items -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-gray-100 p-5 md:p-6 hover:shadow-xl hover:border-blue-200 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-utensils text-white text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs md:text-sm text-gray-500 font-bold uppercase">Total Items</p>
+                    <p class="text-2xl md:text-3xl font-black text-gray-900">{{ menu_items|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Items -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-gray-100 p-5 md:p-6 hover:shadow-xl hover:border-green-200 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-check text-white text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs md:text-sm text-gray-500 font-bold uppercase">Available</p>
+                    <p class="text-2xl md:text-3xl font-black text-gray-900">
+                        {{ menu_items|selectattr('is_available', 'equalto', true)|list|length }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-gray-100 p-5 md:p-6 hover:shadow-xl hover:border-purple-200 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-tags text-white text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs md:text-sm text-gray-500 font-bold uppercase">Categories</p>
+                    <p class="text-2xl md:text-3xl font-black text-gray-900">
+                        {{ menu_items|map(attribute='category')|unique|list|length }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popular Item -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-gray-100 p-5 md:p-6 hover:shadow-xl hover:border-orange-200 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-fire text-white text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs md:text-sm text-gray-500 font-bold uppercase">Popular</p>
+                    <p class="text-sm md:text-base font-black text-gray-900 truncate">
+                        {% if menu_items %}
+                            {{ (menu_items|sort(attribute='total_orders', reverse=true)|first).name[:15] }}...
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items Table/Cards -->
+    <div class="bg-white rounded-2xl md:rounded-3xl shadow-xl border-2 border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b-2 border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-list text-2xl text-emerald-600"></i>
+                <h3 class="text-xl md:text-2xl font-black text-gray-900">Menu Items</h3>
+            </div>
+        </div>
+
+        {% if menu_items %}
+        <!-- Desktop Table View -->
+        <div class="hidden lg:block overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Item</th>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Category</th>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Preparation</th>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y-2 divide-gray-100">
+                    {% for item in menu_items %}
+                    <tr class="hover:bg-emerald-50 transition-all">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-4">
+                                <div class="flex-shrink-0 w-14 h-14">
+                                    {% if item.image_url %}
+                                        <img class="w-14 h-14 rounded-xl object-cover border-2 border-gray-200 shadow-sm" 
+                                             src="{{ item.image_url }}" alt="{{ item.name }}">
+                                    {% else %}
+                                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-2">
+                                            <i class="fas fa-utensils text-gray-500 text-xl"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-black text-gray-900">{{ item.name }}</div>
+                                    <div class="text-xs text-gray-600 truncate max-w-xs font-medium">
+                                        {{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">
+                                {{ item.category }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm font-black text-gray-900">PKR {{ "%.0f"|format(item.price) }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs text-gray-600 font-medium">{{ item.preparation_time }}</div>
+                            <div class="flex items-center mt-1">
+                                {% set spice_number = item.spice_level %}
+                                {% if spice_number == 'Mild' %}
+                                    {% set spice_count = 1 %}
+                                {% elif spice_number == 'Medium' %}
+                                    {% set spice_count = 2 %}
+                                {% elif spice_number == 'Spicy' %}
+                                    {% set spice_count = 3 %}
+                                {% elif spice_number == 'Very Spicy' %}
+                                    {% set spice_count = 4 %}
+                                {% else %}
+                                    {% set spice_count = 2 %}
+                                {% endif %}
+
+                                {% for i in range(4) %}
+                                    {% if i < spice_count %}
+                                        <i class="fas fa-pepper-hot text-red-500 text-xs mr-1"></i>
+                                    {% else %}
+                                        <i class="fas fa-pepper-hot text-gray-300 text-xs mr-1"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if item.is_available %}
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                    <i class="fas fa-check mr-1"></i>Available
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                                    <i class="fas fa-times mr-1"></i>Unavailable
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleAvailability('{{ item.id }}')"
+                                        class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
+                                        title="Toggle Availability">
+                                    <i class="fas fa-power-off"></i>
+                                </button>
+                                <button onclick="openEditModal('{{ item.id }}', '{{ item.name }}', '{{ item.description }}', {{ item.price }}, '{{ item.category }}', '{{ item.preparation_time }}', '{{ item.spice_level }}', {{ item.is_available|lower }}, '{{ item.image_url }}')"
+                                        class="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
+                                        title="Edit Item">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="confirmDelete('{{ item.id }}', '{{ item.name }}')"
+                                        class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all"
+                                        title="Delete Item">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="lg:hidden p-4 space-y-4">
+            {% for item in menu_items %}
+            <div class="menu-item-card bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 p-4 shadow-md">
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-shrink-0">
+                        {% if item.image_url %}
+                            <img class="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm" 
+                                 src="{{ item.image_url }}" alt="{{ item.name }}">
+                        {% else %}
+                            <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-2">
+                                <i class="fas fa-utensils text-gray-500 text-2xl"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-lg font-black text-gray-900 mb-1">{{ item.name }}</h4>
+                        <p class="text-sm text-gray-600 font-medium mb-2">{{ item.description[:60] }}...</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2 py-1 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">
+                                {{ item.category }}
+                            </span>
+                            {% if item.is_available %}
+                                <span class="px-2 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full">
+                                    Available
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full">
+                                    Unavailable
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t-2 border-gray-200">
+                    <div>
+                        <div class="text-xl font-black text-emerald-600">PKR {{ "%.0f"|format(item.price) }}</div>
+                        <div class="text-xs text-gray-500 font-medium">{{ item.preparation_time }}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleAvailability('{{ item.id }}')"
+                                class="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all">
+                            <i class="fas fa-power-off"></i>
+                        </button>
+                        <button onclick="openEditModal('{{ item.id }}', '{{ item.name }}', '{{ item.description }}', {{ item.price }}, '{{ item.category }}', '{{ item.preparation_time }}', '{{ item.spice_level }}', {{ item.is_available|lower }}, '{{ item.image_url }}')"
+                                class="p-3 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="confirmDelete('{{ item.id }}', '{{ item.name }}')"
+                                class="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16 px-4">
+            <div class="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <i class="fas fa-utensils text-5xl text-gray-400"></i>
+            </div>
+            <h3 class="text-2xl font-black text-gray-900 mb-2">No menu items yet</h3>
+            <p class="text-gray-600 font-medium mb-6">Get started by adding your first menu item</p>
+            <button onclick="openAddModal()" 
+                    class="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl font-black shadow-lg hover:shadow-xl transition-all">
+                <i class="fas fa-plus mr-2"></i>Add Your First Item
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="menuModal" class="modal fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] hidden">
+    <div class="bg-white rounded-2xl md:rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto modal-animation">
+        <div class="sticky top-0 bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 border-b-2">
+            <div class="flex items-center justify-between">
+                <h3 id="modalTitle" class="text-xl md:text-2xl font-black text-white">Add Menu Item</h3>
+                <button onclick="closeModal()" class="text-white hover:text-gray-200 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <form id="menuForm" enctype="multipart/form-data" class="p-6 md:p-8 space-y-6">
+            <input type="hidden" id="itemId" name="item_id">
+            <input type="hidden" id="currentImage" name="current_image">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="name" class="block text-sm font-black text-gray-700 mb-2 uppercase">Item Name *</label>
+                    <input type="text" id="name" name="name" required
+                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium"
+                           placeholder="e.g., Chicken Biryani">
+                </div>
+
+                <div>
+                    <label for="category" class="block text-sm font-black text-gray-700 mb-2 uppercase">Category *</label>
+                    <select id="category" name="category" required
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium">
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-black text-gray-700 mb-2 uppercase">Description</label>
+                <textarea id="description" name="description" rows="3"
+                          class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium"
+                          placeholder="Describe your menu item..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="price" class="block text-sm font-black text-gray-700 mb-2 uppercase">Price (PKR) *</label>
+                    <input type="number" id="price" name="price" step="0.01" min="0" required
+                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium"
+                           placeholder="350">
+                </div>
+
+                <div>
+                    <label for="preparation_time" class="block text-sm font-black text-gray-700 mb-2 uppercase">Prep Time</label>
+                    <select id="preparation_time" name="preparation_time"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium">
+                        <option value="5-10 mins">5-10 mins</option>
+                        <option value="10-15 mins">10-15 mins</option>
+                        <option value="15-20 mins" selected>15-20 mins</option>
+                        <option value="20-25 mins">20-25 mins</option>
+                        <option value="25-30 mins">25-30 mins</option>
+                        <option value="30+ mins">30+ mins</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="spice_level" class="block text-sm font-black text-gray-700 mb-2 uppercase">Spice Level</label>
+                    <select id="spice_level" name="spice_level"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium">
+                        <option value="Mild">🌶️ Mild</option>
+                        <option value="Medium" selected>🌶️🌶️ Medium</option>
+                        <option value="Spicy">🌶️🌶️🌶️ Spicy</option>
+                        <option value="Very Spicy">🌶️🌶️🌶️🌶️ Very Spicy</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="image" class="block text-sm font-black text-gray-700 mb-2 uppercase">Item Image</label>
+                <input type="file" id="image" name="image" accept="image/*"
+                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition-all font-medium file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-100 file:text-emerald-700 file:font-bold hover:file:bg-emerald-200">
+                <div id="imagePreview" class="mt-3"></div>
+            </div>
+
+            <div class="flex items-center p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200">
+                <input type="checkbox" id="is_available" name="is_available"
+                       class="w-5 h-5 text-emerald-600 border-2 border-gray-300 rounded focus:ring-emerald-500">
+                <label for="is_available" class="ml-3 text-sm font-bold text-gray-900">Available for ordering</label>
+            </div>
+        </form>
+
+        <div class="sticky bottom-0 bg-white px-6 py-5 border-t-2 border-gray-200 flex flex-col sm:flex-row justify-end gap-3">
+            <button type="button" onclick="closeModal()"
+                    class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-black transition-all">
+                Cancel
+            </button>
+            <button type="button" onclick="submitForm()"
+                    class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl font-black shadow-lg hover:shadow-xl transition-all">
+                <i class="fas fa-save mr-2"></i>Save Item
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modal functions
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add Menu Item';
+        document.getElementById('menuForm').reset();
+        document.getElementById('itemId').value = '';
+        document.getElementById('currentImage').value = '';
+        document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('is_available').checked = true;
+        document.getElementById('menuModal').classList.remove('hidden');
+    }
+
+    function openEditModal(itemId, name, description, price, category, preparationTime, spiceLevel, isAvailable, imageUrl) {
+        document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+        document.getElementById('itemId').value = itemId;
+        document.getElementById('name').value = name || '';
+        document.getElementById('description').value = description || '';
+        document.getElementById('price').value = price || '';
+        document.getElementById('category').value = category || '';
+        document.getElementById('preparation_time').value = preparationTime || '15-20 mins';
+        document.getElementById('spice_level').value = spiceLevel || 'Medium';
+        document.getElementById('is_available').checked = isAvailable === 'true';
+        document.getElementById('currentImage').value = imageUrl || '';
+
+        // Show image preview if exists
+        const imagePreview = document.getElementById('imagePreview');
+        if (imageUrl) {
+            imagePreview.innerHTML = `
+                <p class="text-sm font-bold text-gray-700 mb-2">Current Image:</p>
+                <img src="${imageUrl}" class="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 shadow-md">
+            `;
+        } else {
+            imagePreview.innerHTML = '';
+        }
+
+        document.getElementById('menuModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('menuModal').classList.add('hidden');
+    }
+
+    // Form submission
+    async function submitForm() {
+        const form = document.getElementById('menuForm');
+        const formData = new FormData(form);
+        const itemId = document.getElementById('itemId').value;
+
+        const url = itemId ? `/restaurant/menu/update/${itemId}` : '/restaurant/menu/add';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                closeModal();
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Toggle availability
+    async function toggleAvailability(itemId) {
+        if (!confirm('Are you sure you want to toggle availability for this item?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/restaurant/menu/toggle_availability/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Delete item
+    async function confirmDelete(itemId, itemName) {
+        if (!confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/restaurant/menu/delete/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Image preview for new uploads
+    document.getElementById('image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('imagePreview');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `
+                    <p class="text-sm font-bold text-gray-700 mb-2">New Image Preview:</p>
+                    <img src="${e.target.result}" class="w-32 h-32 object-cover rounded-xl border-2 border-emerald-500 shadow-md">
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

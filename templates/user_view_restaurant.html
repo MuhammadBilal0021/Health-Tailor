@@ -1,0 +1,348 @@
+{% extends 'user_base.html' %}
+
+{% block title %}{{ restaurant.restaurant_name }} - Health Tailor{% endblock %}
+{% block page_title %}{{ restaurant.restaurant_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+    <!-- Restaurant Header -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="relative">
+            <!-- Restaurant Cover Image -->
+            {% if restaurant.images and restaurant.images[0] %}
+                <img src="{{ restaurant.images[0] }}" alt="{{ restaurant.restaurant_name }}" 
+                     class="w-full h-64 object-cover">
+            {% else %}
+                <div class="w-full h-64 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-utensils text-white text-6xl"></i>
+                </div>
+            {% endif %}
+            
+            <!-- Overlay Info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
+                <div class="flex flex-col md:flex-row md:items-end md:justify-between">
+                    <div class="text-white">
+                        <h1 class="text-3xl font-bold mb-2">{{ restaurant.restaurant_name }}</h1>
+                        <div class="flex items-center space-x-4 text-sm">
+                            <span class="flex items-center">
+                                <i class="fas fa-map-marker-alt mr-1"></i>
+                                {{ restaurant.city }}
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                {{ "%.1f"|format(restaurant.rating) if restaurant.rating else "New" }} ({{ restaurant.reviews or 0 }} reviews)
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ restaurant.opening_time }} - {{ restaurant.closing_time }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-4 md:mt-0 flex space-x-3">
+                        <button class="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg transition-colors border border-white border-opacity-30">
+                            <i class="fas fa-heart mr-2"></i>Save
+                        </button>
+                        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            <i class="fas fa-share mr-2"></i>Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restaurant Details Bar -->
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex flex-wrap gap-4 items-center justify-between">
+                <!-- Specialties -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-600">Specialties:</span>
+                    <div class="flex flex-wrap gap-1">
+                        {% for specialty in restaurant.specialty %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{{ specialty }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Contact Info -->
+                <div class="flex items-center space-x-4 text-sm text-gray-600">
+                    <span class="flex items-center">
+                        <i class="fas fa-phone mr-1"></i>
+                        {{ restaurant.phone }}
+                    </span>
+                    <span class="flex items-center">
+                        <i class="fas fa-envelope mr-1"></i>
+                        {{ restaurant.email }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if restaurant.description %}
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">About</h3>
+            <p class="text-gray-600">{{ restaurant.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Menu Section -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+            <h2 class="text-xl font-bold text-white">Menu</h2>
+            <p class="text-green-100">Delicious dishes waiting for you</p>
+        </div>
+
+        {% if menu_by_category %}
+        <div class="p-6">
+            {% for category, items in menu_by_category.items() %}
+            <div class="mb-8 last:mb-0">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-tag text-green-500 mr-2"></i>
+                    {{ category }}
+                    <span class="ml-2 text-sm font-normal text-gray-500">({{ items|length }} items)</span>
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for item in items %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-green-300 hover:bg-green-50 transition-colors">
+                        <div class="flex space-x-4">
+                            <!-- Item Image -->
+                            <div class="flex-shrink-0">
+                                {% if item.image_url %}
+                                    <img src="{{ item.image_url }}" alt="{{ item.name }}" 
+                                         class="w-20 h-20 rounded-lg object-cover">
+                                {% else %}
+                                    <div class="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
+                                        <i class="fas fa-utensils text-gray-400"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Item Details -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-gray-800 text-lg">{{ item.name }}</h4>
+                                    <span class="font-bold text-green-600">PKR {{ "%.2f"|format(item.price) }}</span>
+                                </div>
+                                
+                                {% if item.description %}
+                                <p class="text-gray-600 text-sm mb-3">{{ item.description }}</p>
+                                {% endif %}
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3 text-sm text-gray-500">
+                                        <!-- Spice Level -->
+                                        <div class="flex items-center">
+                                            {% set spice_level = item.spice_level %}
+                                            {% if spice_level == 'Mild' %}
+                                                {% set spice_count = 1 %}
+                                                {% set spice_color = 'text-green-500' %}
+                                            {% elif spice_level == 'Medium' %}
+                                                {% set spice_count = 2 %}
+                                                {% set spice_color = 'text-yellow-500' %}
+                                            {% elif spice_level == 'Spicy' %}
+                                                {% set spice_count = 3 %}
+                                                {% set spice_color = 'text-orange-500' %}
+                                            {% elif spice_level == 'Very Spicy' %}
+                                                {% set spice_count = 4 %}
+                                                {% set spice_color = 'text-red-500' %}
+                                            {% else %}
+                                                {% set spice_count = 2 %}
+                                                {% set spice_color = 'text-gray-400' %}
+                                            {% endif %}
+                                            
+                                            <i class="fas fa-pepper-hot {{ spice_color }} mr-1"></i>
+                                            <span class="text-gray-600">{{ spice_level }}</span>
+                                        </div>
+                                        
+                                        <!-- Preparation Time -->
+                                        <div class="flex items-center">
+                                            <i class="fas fa-clock text-gray-400 mr-1"></i>
+                                            <span>{{ item.preparation_time }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                   <!-- In user_view_restaurant.html, replace the Add to Cart button -->
+<button onclick="addToCart('{{ restaurant.id }}', '{{ item.id }}')"
+        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium add-to-cart-btn"
+        data-item-id="{{ item.id }}">
+    <i class="fas fa-plus mr-1"></i>Add to Cart
+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-utensils text-4xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Menu Coming Soon</h3>
+            <p class="text-gray-500">This restaurant is working on their menu. Check back later!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Similar Restaurants Section -->
+    {% if similar_restaurants %}
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+            <h2 class="text-xl font-bold text-white">Similar Restaurants in {{ restaurant.city }}</h2>
+            <p class="text-purple-100">You might also like these places</p>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% for similar in similar_restaurants %}
+                <a href="{{ url_for('user_view_restaurant', restaurant_id=similar.id) }}" 
+                   class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 hover:bg-purple-50 transition-colors group">
+                    {% if similar.images and similar.images[0] %}
+                        <img src="{{ similar.images[0] }}" alt="{{ similar.restaurant_name }}" 
+                             class="w-full h-32 object-cover rounded-lg mb-3 group-hover:scale-105 transition-transform">
+                    {% else %}
+                        <div class="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center mb-3">
+                            <i class="fas fa-utensils text-gray-400 text-2xl"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h4 class="font-semibold text-gray-800 group-hover:text-purple-700 mb-1">{{ similar.restaurant_name }}</h4>
+                    <p class="text-gray-600 text-sm mb-2 flex items-center">
+                        <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>
+                        {{ similar.city }}
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-1">
+                        {% for specialty in similar.specialty[:2] %}
+                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">{{ specialty }}</span>
+                        {% endfor %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Restaurant Gallery -->
+    {% if restaurant.images and restaurant.images|length > 1 %}
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800">Gallery</h2>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {% for image in restaurant.images %}
+                <div class="aspect-square rounded-lg overflow-hidden">
+                    <img src="{{ image }}" alt="Restaurant image {{ loop.index }}" 
+                         class="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer"
+                         onclick="openImageModal('{{ image }}')">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50 hidden">
+    <div class="max-w-4xl max-h-full">
+        <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain">
+        <button onclick="closeImageModal()" 
+                class="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+// Image modal functions
+function openImageModal(imageUrl) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('imageModal').classList.remove('hidden');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+<script>
+// Add to cart functionality
+async function addToCart(restaurantId, menuItemId) {
+    const button = document.querySelector(`.add-to-cart-btn[data-item-id="${menuItemId}"]`);
+
+    // Show loading state
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Adding...';
+    button.disabled = true;
+
+    try {
+        const response = await fetch(`/user/cart/add/${restaurantId}/${menuItemId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Show success message
+            button.innerHTML = '<i class="fas fa-check mr-1"></i>Added!';
+            button.className = 'px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium';
+
+            // Update cart count in navbar
+            updateCartCount(result.cart_count);
+
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.className = 'px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium add-to-cart-btn';
+                button.disabled = false;
+            }, 2000);
+        } else {
+            alert('Error: ' + result.message);
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+// Update cart count in navbar
+function updateCartCount(count) {
+    const cartCountElements = document.querySelectorAll('.cart-count');
+    cartCountElements.forEach(element => {
+        element.textContent = count;
+    });
+
+    // Show/hide cart badge
+    const cartBadges = document.querySelectorAll('.cart-badge');
+    cartBadges.forEach(badge => {
+        if (count > 0) {
+            badge.classList.remove('hidden');
+            badge.textContent = count > 99 ? '99+' : count;
+        } else {
+            badge.classList.add('hidden');
+        }
+    });
+}
+</script>
+{% endblock %}
