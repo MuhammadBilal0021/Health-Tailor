@@ -1,18 +1,17 @@
-# Local configuration and private credentials
 .env
 .env.*
 !.env.example
-*service*account*.json
-datbase*.json
-credentials*.json
-# Runtime and tooling
+node_modules/
+.next/
+out/
+.venv/
 __pycache__/
 *.py[cod]
-.venv/
-venv/
 .pytest_cache/
-.idea/
-.vscode/
+*.db
+*.db-*
+*.tsbuildinfo
+.vercel/
 *.log
-static/images/*
-!static/images/.gitkeep
+
+.ruff_cache/

@@ -1,15 +1,12 @@
 # Changelog
 
-## Portfolio edition
+## 2.0.0 — Modern full-stack migration
 
-- Added a responsive landing page, illustrated meal asset, demo entry, and clear error pages.
-- Standardized Health Tailor branding and customer currency labels to PKR.
-- Added a cloud-free demo with fictional customer, restaurant, menu, and wallet data.
-- Removed bundled credentials and moved integration settings to environment variables.
-- Replaced plaintext password writes with hashes and rejected legacy plaintext login.
-- Added session-bound CSRF protection and an 8 MB upload limit.
-- Made checkout, recharge approval, refund, and restaurant settlement transactional.
-- Fixed order-status email arguments and separated email failure from payout processing.
-- Fixed restaurant order rendering, dictionary item access, and a Jinja syntax error.
-- Removed fabricated fallback food analysis and fixed-value nutrition charts.
-- Added AI consent controls, regression tests, and GitHub Actions checks.
+- Rebuilt the interface with Next.js, React, and strict TypeScript.
+- Added bilingual English/Arabic layouts, responsive discovery, and original SVG meal illustrations.
+- Implemented customer, kitchen, and administrator workflows in browser demo and connected modes.
+- Introduced FastAPI, SQLAlchemy, PostgreSQL, and Alembic migrations.
+- Added opaque sessions, CSRF checks, server authorization, transactional checkout, refunds, settlement, and credit approval.
+- Added opt-in AI meal exploration with explicit unavailable responses.
+- Added domain/API tests, PostgreSQL CI, Docker Compose, and Vercel deployment instructions.
+- Preserved the Flask/Firebase version on `legacy-flask`; no Firebase records or balances are migrated automatically.

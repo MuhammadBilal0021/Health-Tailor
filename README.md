@@ -1,184 +1,122 @@
-<p align="center"><img src="docs/banner.svg" alt="Health Tailor — Good food. A better fit for you." width="100%"></p>
-
-<p align="center">
-  <a href="https://github.com/MuhammadBilal0021/Health-Tailor/actions/workflows/tests.yml"><img src="https://github.com/MuhammadBilal0021/Health-Tailor/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python 3.11 or newer">
-  <img src="https://img.shields.io/badge/Flask-Web_application-233e34?logo=flask&logoColor=white" alt="Flask web application">
-  <img src="https://img.shields.io/badge/Status-Graduation_project-bd623e" alt="Graduation project">
-</p>
-
 # Health Tailor
 
-**A web application connecting personal dietary preferences with food discovery and restaurant ordering.**
+**Thoughtful food discovery, from personal preferences to the kitchen.**
 
-Choosing a meal can involve more than price and convenience. People may want to consider ingredients, spice preferences, and health considerations, yet those decisions often happen separately from the ordering experience. Health Tailor brings a personal profile, optional AI-assisted meal exploration, restaurant menus, and order tracking into one application.
+[![CI](https://github.com/MuhammadBilal0021/Health-Tailor/actions/workflows/ci.yml/badge.svg)](https://github.com/MuhammadBilal0021/Health-Tailor/actions/workflows/ci.yml)
+![Next.js](https://img.shields.io/badge/Next.js-16-171717?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-SQLAlchemy-4169E1?logo=postgresql&logoColor=white)
 
-This is my graduation project, developed to explore a practical intersection of **full-stack engineering, AI integration, and user-focused product design**. It demonstrates an end-to-end ordering workflow while making the limits of AI-generated food suggestions explicit.
+Health Tailor is my graduation project exploring a practical problem: food ordering is easy, but understanding how a meal fits your preferences is often harder. It brings ingredient information, preference-based discovery, restaurant operations, and order tracking into one application.
 
-[Try locally](#quick-start) · [Features](#features) · [Architecture](docs/architecture.md) · [Security notes](SECURITY.md) · [Changes](CHANGELOG.md)
+The current version rebuilds the original Flask/Firebase prototype as a **Next.js + TypeScript frontend and a FastAPI + PostgreSQL backend**, with an English/Arabic interface and a no-sign-up interactive demo. The original implementation remains on the [legacy-flask branch](https://github.com/MuhammadBilal0021/Health-Tailor/tree/legacy-flask).
+
+[Run locally](#quick-start) · [Deploy on Vercel](docs/DEPLOYMENT.md) · [Architecture](docs/ARCHITECTURE.md) · [Interview summary](docs/PROJECT-SUMMARY.md)
+
+![Health Tailor meal discovery](docs/screenshots/discovery.png)
+
+## What you can try
+
+| Customer | Restaurant | Administrator |
+| --- | --- | --- |
+| Search meals, ingredients, and kitchen menus | Add, edit, and hide dishes | Approve or pause kitchens |
+| Rank meals by personal preferences | Maintain bilingual kitchen details | Approve or reject credit requests |
+| View declared ingredients and allergens | Advance orders through fulfillment | Inspect order activity |
+| Place orders and track progress | See settled order revenue | Review role-separated operations |
+| Request test credit and view refunds | Read delivered-order reviews | Keep approvals explicit |
+| Review delivered orders | Switch between fictional demo kitchens | Explore without creating an account |
+
+English/Arabic switching changes layout direction and SAR formatting. Optional AI meal exploration accepts a question and a food image with explicit consent; it is disabled in browser demo mode and returns an honest unavailable message when no provider is configured.
+
+**This is a portfolio prototype.** Its credit ledger does not process real payments. Menu data is fictional, preference matching is not a medical recommendation, and AI cannot verify allergens or provide clinical dietary advice. No real customer adoption or health outcomes are claimed.
+
+## A two-minute walkthrough
+
+1. Open **Discover meals**, choose a dish, and add it to your bag.
+2. Enter a fictional delivery address and place the order using the demo's SAR 500 test credit.
+3. Open **Kitchen workspace**, choose the relevant demo kitchen, and advance the order through confirmed → preparing → ready → delivered.
+4. Return to **Your orders** and leave a review.
+5. Request credit in **Wallet**, then switch to **Administrator** to approve it.
+6. Try **العربية**, then use **Reset demo** to start again.
+
+Demo state stays in your browser. It never grants live server permissions. Live accounts use server-enforced roles and start with zero credit.
+
+## Engineering decisions
+
+- **Typed UI:** strict TypeScript models, reusable React components, accessible labels, keyboard focus, native dialogs, and responsive CSS.
+- **Server-owned pricing:** clients submit dish IDs and quantities; the API calculates totals in integer halalas and snapshots order prices.
+- **Transactional ordering:** PostgreSQL row locks serialize wallet updates; idempotency keys prevent duplicate checkout charges; refunds and restaurant settlement happen once.
+- **Explicit authorization:** opaque HttpOnly session cookies, hashed session tokens, CSRF verification, role and ownership checks, and bounded request schemas.
+- **Reproducible delivery:** Alembic schema migrations, Docker Compose, locked frontend dependencies, Python checks, and GitHub Actions with a PostgreSQL test service.
+- **Honest AI integration:** server-side credentials, opt-in requests, validated image uploads, rate limiting, and no fabricated fallback analysis.
+
+See [architecture and tradeoffs](docs/ARCHITECTURE.md) for details and [security notes](SECURITY.md) for current limits.
 
 ## Quick start
 
-The default demo runs **without Firebase credentials, an API key, or an email account**.
+Requires Node.js 22 and npm. The interactive demo does not require Python, a database, or API credentials.
 
-```sh
-git clone https://github.com/MuhammadBilal0021/Health-Tailor.git
-cd Health-Tailor
-python -m venv .venv
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
-Activate the environment:
+Open [localhost:3000](http://localhost:3000). For a portfolio deployment, import this repository into Vercel and set **Root Directory to `frontend`**. Keep `NEXT_PUBLIC_API_ENABLED=false`. See the [deployment guide](docs/DEPLOYMENT.md) for live accounts and database setup.
 
-```powershell
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
+### Full stack with Docker
+
+Requires Docker Compose. Copy the root `.env.example` to `.env` and set a unique URL-safe `POSTGRES_PASSWORD`.
+
+```bash
+docker compose up --build -d
+docker compose exec backend python manage.py seed-catalog
+docker compose exec backend python manage.py create-user --email admin@example.test --name Admin --role admin
+docker compose exec backend python manage.py create-user --email kitchen@example.test --name "Demo Kitchen" --role restaurant --kitchen r1
 ```
 
-```sh
-# macOS / Linux
-source .venv/bin/activate
+The CLI asks for passwords privately; there are no shared default credentials. Sign up as a customer in the UI, request credit, and approve it using your administrator account. The sample catalog creates fictional kitchens but no owners or balances. Docker's insecure-cookie setting is for localhost only. A native Python setup is documented in [deployment](docs/DEPLOYMENT.md).
+
+## Validation
+
+```bash
+# frontend/
+npm run typecheck
+npm test
+npm run format:check
+npm run build
+
+# backend/ (Python 3.11 or 3.12, virtual environment)
+pip install -r requirements-dev.txt
+ruff check .
+ruff format --check .
+python -m pytest -q
 ```
 
-Then install and run:
+Frontend tests cover totals, availability, insufficient credit, refunds, settlement, and repeated approvals. API tests cover authentication, CSRF, ownership, invalid transitions, server-side pricing, replayed requests, reviews, and unavailable AI. CI runs the backend suite on PostgreSQL, including concurrent checkout; SQLite skips that concurrency test locally.
 
-```sh
-python -m pip install -r requirements.txt
-python app.py
-```
+Real browser checks covered checkout → delivery, desktop discovery, and Arabic mobile layout. Screenshots use fictional demo data. Docker and Vercel configuration are included; an actual cloud deployment is not implied by a passing build.
 
-Open **http://127.0.0.1:5000** and select **Explore the demo**.
-
-### A two-minute walkthrough
-
-1. Enter the customer demo with fictional profile data and PKR 5,000 in test credit.
-2. Browse **The Green Table**, a fictional restaurant with sample dishes.
-3. Add a meal to your cart and check out with a fictional delivery address.
-4. Open your orders to inspect the order details or cancel a pending order.
-5. Visit the meal explorer to see its consent controls and honest unavailable state when AI is disabled.
-
-Demo data is shared within one process and resets on restart. No actual payments, emails, or AI requests are sent. Use fictional information only. The illustration above is a project banner, not an application screenshot.
-
-## Features
-
-| Area | What it does |
-| --- | --- |
-| Customer profile | Records food preferences and optional health considerations |
-| Restaurant discovery | Lists restaurants, categories, cities, and menus |
-| Cart and checkout | Checks current menu availability and prices, then creates an order with a wallet debit |
-| Order lifecycle | Tracks pending, confirmed, preparing, ready, delivered, and cancelled states |
-| Wallet ledger | Records recharge approvals, checkout debits, cancellation refunds, and restaurant settlement |
-| Restaurant workspace | Supports menus, availability, orders, gallery, reviews, and profile management |
-| Administration | Provides customer/restaurant approval and wallet request review |
-| Optional AI | Uses Gemini for photo-based dish exploration and food ideas after explicit consent |
-| Local demo | Offers an easy way to explore the customer journey with fictional data |
-
-**Scope:** wallet balances are application ledger records. There is no integrated payment gateway or bank-transfer execution. AI output is an estimate; the app cannot verify allergens, ingredients, nutrition measurements, or medical suitability from a photo.
-
-## Engineering highlights
-
-- **Atomic state changes:** checkout, recharge approval, cancellation, and settlement update related records in one transaction. Repeated recharge approvals cannot credit a wallet again.
-- **Controlled order transitions:** completed and cancelled orders cannot be moved back into active states.
-- **Current-price validation:** checkout re-reads menu prices and availability rather than trusting an old cart snapshot.
-- **Failure isolation:** email notification failures do not undo a successful order update or prevent restaurant settlement.
-- **Password hashing and configuration:** account passwords are hashed; cloud credentials and administrator configuration are loaded from the environment.
-- **CSRF protection:** state-changing requests require a session-bound token.
-- **Honest AI behavior:** unavailable results stay unavailable. The app does not invent a dish or display fixed nutrition percentages as measured analysis.
-- **Regression coverage:** tests exercise permissions, rendering, checkout, refunds, duplicate approval, settlement, and AI failure behavior.
-
-## Stack and structure
-
-| Layer | Technology |
-| --- | --- |
-| Web application | Python, Flask, Jinja |
-| Interface | HTML, CSS, JavaScript; existing dashboard templates use Tailwind CDN |
-| Live database | Firebase Realtime Database through the Admin SDK |
-| Local demo | In-memory adapter implementing the database operations used by the app |
-| Optional AI | Google Gen AI Python SDK / Gemini |
-| Optional email | SMTP through yagmail |
-| Testing | Python unittest, Flask test client, GitHub Actions |
+## Repository map
 
 ```text
-Health-Tailor/
-├── app.py                 # Routes and application workflows
-├── runtime.py             # Environment configuration, demo data, adapters
-├── transactions.py        # Atomic order and wallet operations
-├── templates/             # Customer, restaurant, and admin views
-├── static/                # Styles, scripts, and original SVG artwork
-├── tests/                 # Offline regression tests
-├── docs/                  # Architecture and project banner
-├── .env.example           # Configuration names; no credentials
-└── .github/workflows/      # Continuous integration
+frontend/src/app/          Next.js routes and responsive styling
+frontend/src/components/   Customer, kitchen, and admin views
+frontend/src/lib/          Typed state, demo catalog, and commerce rules
+frontend/tests/            Domain behavior tests
+backend/main.py           FastAPI endpoints
+backend/commerce.py       Transactional order and credit rules
+backend/models.py         SQLAlchemy relational models
+backend/migrations/       Versioned Alembic schema
+backend/tests/            API and PostgreSQL concurrency tests
+docs/                     Deployment, architecture, and project narrative
 ```
 
-See [architecture and tradeoffs](docs/architecture.md) for the transaction design and planned refactoring.
+## Scope and next steps
 
-## Tests
+This migration implements the core discovery, ordering, kitchen, and admin workflows. It does not migrate Firebase users, passwords, photos, or PKR balances; SAR amounts are newly authored sample data. Account recovery/email verification, payment-provider reconciliation, live courier tracking, clinical nutrition validation, full error-message localization, and production observability remain future work. Live carts are held in memory and reset on a full page refresh. API history currently returns up to 200 records rather than paginated archives.
 
-```sh
-python -m unittest discover -s tests -v
-```
+The project demonstrates a working technical approach to more informed meal discovery. Validating its impact would require interviews with diners and restaurants, usability testing, and measured outcomes.
 
-The suite runs offline in demo mode. It covers public/customer/restaurant/admin page rendering and template syntax, password hashing, CSRF rejection, concurrent recharge replay, current-price checkout, single refunds, legal order transitions, and repeat settlement protection.
-
-The browser-based visual review was not completed in this environment. Live Firebase, SMTP, and Gemini integrations require separate integration testing with newly configured credentials; passing offline tests does not establish production readiness.
-
-## Configure live integrations
-
-Start with a **new test Firebase project**, not personal or production data.
-
-```sh
-python -m pip install -r requirements-live.txt
-```
-
-Copy `.env.example` to `.env` and set:
-
-| Variable | Purpose |
-| --- | --- |
-| `APP_MODE=live` | Enable persistent Firebase storage |
-| `SECRET_KEY` | Random session-signing secret of at least 32 characters |
-| `FIREBASE_CREDENTIALS` | Absolute path to a service-account JSON file outside this repository |
-| `FIREBASE_DATABASE_URL` | Your Firebase Realtime Database URL |
-| `ADMIN_EMAIL` | Administrator sign-in email |
-| `ADMIN_PASSWORD_HASH` | Werkzeug password hash for the administrator |
-| `GEMINI_API_KEY` | Optional key for AI requests |
-| `GEMINI_MODEL` | Configurable model name; default is `gemini-2.5-flash` |
-| `SMTP_USER`, `SMTP_PASSWORD` | Optional email configuration |
-| `COOKIE_SECURE=true` | Set when serving through HTTPS |
-
-Generate a session secret locally:
-
-```sh
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Generate an administrator password hash without placing the password in shell history:
-
-```sh
-python -c "from getpass import getpass; from werkzeug.security import generate_password_hash; print(generate_password_hash(getpass('Admin password: ')))"
-```
-
-Keep these values local. Never commit `.env`, service-account files, or uploaded personal data. Credentials included in earlier archives must be revoked and replaced. Existing plaintext password records must be reset; plaintext login is deliberately unsupported.
-
-For a controlled live-mode evaluation, a WSGI server is available with the optional dependencies:
-
-```sh
-waitress-serve --listen=127.0.0.1:5000 app:app
-```
-
-This is not a complete deployment recipe. Review [SECURITY.md](SECURITY.md) before exposing the app to users. The current root-transaction design favors correctness for a small prototype over large-scale throughput.
-
-## What comes next
-
-- Verified ingredient, portion, and allergen information supplied by restaurants.
-- Arabic localization and right-to-left layouts.
-- A real payment provider with verified webhooks and reconciliation.
-- Broader mobile, accessibility, and browser test coverage.
-- Route blueprints, distributed rate limiting, audit trails, and background email delivery.
-
-These are planned improvements, not claims about current capabilities.
-
-## Author
-
-**Muhammad Bilal** · [GitHub](https://github.com/MuhammadBilal0021)
-
-Graduation project focused on connecting a real user need with practical software engineering. See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidance.
+Built by [Muhammad Bilal](https://github.com/MuhammadBilal0021).
